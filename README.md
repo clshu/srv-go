@@ -9,3 +9,23 @@
 ### go get github.com/vektah/gqlparser/v2@v2.1.0
 
 ### go run github.com/99designs/gqlgen init
+
+## Steps to change the project
+
+### Modify gqlgen yml
+
+#### resolver:
+
+layout: follow-schema
+dir: graph/resolver
+package: resolver
+
+### Copy graph/schema.graphqls to graph/user.graphqls and graph/todeo.graphqls
+
+### Remove graph/schema.graphqls
+
+### Remove graph/resolver.go
+
+### Remove graph/schema.resolver.go
+
+### go run github.com/99designs/gqlgen generate
