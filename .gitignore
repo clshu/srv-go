@@ -1,0 +1,4 @@
+# Environment Variables to set up development and test environments
+config/
+# fresh/air creates tmp/
+tmp/
