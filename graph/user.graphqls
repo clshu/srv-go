@@ -4,5 +4,42 @@
 
 type User {
   id: ID!
-  name: String!
+  firstName: String!
+  lastName: String!
+  email: String!
+  password: String!
+}
+
+type UserView {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+}
+
+type AuthPayload {
+  user: UserView!
+  token: String!
+}
+
+extend type Query {
+  users: [UserView!]!
+  profile: UserView!
+}
+
+input CreateUserInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  password: String!
+}
+
+input LogInInput {
+  email: String!
+  password: String!
+}
+
+extend type Mutation {
+  createUser(data: CreateUserInput!): UserView!
+  logIn(data: LogInInput!): AuthPayload!
 }

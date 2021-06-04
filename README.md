@@ -29,3 +29,11 @@ package: resolver
 ### Remove graph/schema.resolver.go
 
 ### go run github.com/99designs/gqlgen generate
+
+## Rerun generate
+
+### go get github.com/99designs/gqlgen/internal/imports@v0.13.0
+
+### go get github.com/99designs/gqlgen/cmd@v0.13.0
+
+### go get github.com/99designs/gqlgen/internal/code@v0.13.0
