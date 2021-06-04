@@ -8,6 +8,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/clshu/srv-go/dbmgm"
 	"github.com/clshu/srv-go/graph/generated"
 	"github.com/clshu/srv-go/graph/resolver"
 	"github.com/joho/godotenv"
@@ -17,6 +18,11 @@ const defaultPort = "8080"
 
 func main() {
 	setUpEnv()
+
+	err := dbmgm.Connect()
+	if err != nil {
+		panic(err)
+	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
