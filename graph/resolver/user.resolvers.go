@@ -6,9 +6,10 @@ package resolver
 import (
 	"context"
 	"fmt"
-	"log"
+	"strings"
 
 	"github.com/clshu/srv-go/graph/model"
+	"github.com/clshu/srv-go/utils"
 	"github.com/kamva/mgm/v3"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -28,7 +29,48 @@ func (r *mutationResolver) CreateUser(ctx context.Context, data model.CreateUser
 }
 
 func (r *mutationResolver) LogIn(ctx context.Context, data model.LogInInput) (*model.AuthPayload, error) {
-	panic(fmt.Errorf("not implemented"))
+	user := &model.User{}
+	mctx := mgm.Ctx()
+	// Normalize the email to lower case
+	email := strings.ToLower(data.Email)
+	password := data.Password
+
+	result := mgm.Coll(user).FindOne(mctx, bson.M{"email": email})
+	if result.Err() != nil {
+		if strings.Contains(result.Err().Error(), "no documents in result") {
+			// log.Printf("%s - %s", result.Err(), email)
+			return nil, fmt.Errorf("Unable to login")
+		}
+		return nil, result.Err()
+	}
+
+	err := result.Decode(user)
+	if err != nil {
+		// log.Print(err)
+		return nil, fmt.Errorf("Unable to login")
+	}
+	if user.Email != email {
+		// log.Print(err)
+		return nil, fmt.Errorf("Unable to login")
+	}
+
+	// Compare hashed password to plain text password
+	err = utils.ComparePassword(user.Password, password)
+	if err != nil {
+		// log.Print(err)
+		return nil, fmt.Errorf("Unable to login")
+	}
+	var token string
+	token, err = utils.CreateToken(user.ID.Hex())
+	if err != nil {
+		// log.Print(err)
+		return nil, err
+	}
+	ret := &model.AuthPayload{
+		User:  User2UserView(user),
+		Token: token,
+	}
+	return ret, nil
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.UserView, error) {
@@ -44,14 +86,14 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.UserView, error) {
 	defer CursorClose(cur, mctx)
 
 	if err != nil {
-		log.Fatal(err)
+		// log.Print(err)
 		return nil, err
 	}
 	for cur.Next(mctx) {
 		var user model.User
 		err := cur.Decode(&user)
 		if err != nil {
-			log.Fatal(err)
+			// log.Print(err)
 			return nil, err
 		}
 		userView := User2UserView(&user)
@@ -59,7 +101,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.UserView, error) {
 	}
 
 	if err := cur.Err(); err != nil {
-		log.Fatal(err)
+		// log.Print(err)
 		return nil, err
 	}
 

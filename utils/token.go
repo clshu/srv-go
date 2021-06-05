@@ -10,7 +10,7 @@ import (
 	"github.com/form3tech-oss/jwt-go"
 )
 
-const domain string = "thermovision.io"
+const domain string = "thermovisionusa.com"
 const algorithm string = "HS256"
 
 // const Domain string = strings.ToUpper(domain)
