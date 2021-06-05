@@ -11,9 +11,13 @@ import (
 	"github.com/clshu/srv-go/graph/model"
 	"github.com/kamva/mgm/v3"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, data model.CreateUserInput) (*model.UserView, error) {
+	// index := mongo.IndexModel{Keys: bson.M{"email": 1}}
+	// opt := options.Index(true)
+	// opt.SetUnique()
 	user := CreateUserInput2User(&data)
 	err := mgm.Coll(user).Create(user)
 	if err != nil {
@@ -30,21 +34,20 @@ func (r *mutationResolver) LogIn(ctx context.Context, data model.LogInInput) (*m
 func (r *queryResolver) Users(ctx context.Context) ([]*model.UserView, error) {
 	user := &model.User{}
 	var results []*model.UserView
+	// sortOptions := SortOptionsMap{"lastName": 1, "firstName": 1}
+	// opts := CreateSortOptions(sortOptions)
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{Key: "lastName", Value: 1}, {Key: "firstName", Value: 1}})
 
-	// mctx := mgm.Ctx()
-	cur, err := mgm.Coll(user).Find(context.TODO(), bson.M{})
-	defer (func() {
-		err := cur.Close(context.TODO())
-		if err != nil {
-			log.Fatal(err)
-		}
-	})()
+	mctx := mgm.Ctx()
+	cur, err := mgm.Coll(user).Find(mctx, bson.M{}, findOptions)
+	defer CursorClose(cur, mctx)
 
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
-	for cur.Next(context.TODO()) {
+	for cur.Next(mctx) {
 		var user model.User
 		err := cur.Decode(&user)
 		if err != nil {
