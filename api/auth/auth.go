@@ -16,6 +16,7 @@ import (
 // A private key for context that only this package can access. This is important
 // to prevent collisions between different context uses
 var userCtxKey = &contextKey{"tokenId"}
+var errCtxKey = &contextKey{"tokenIdError"}
 
 type contextKey struct {
 	name string
@@ -57,6 +58,7 @@ func extractBearerToken(auths []string) (string, error) {
 func Middleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 			auths := r.Header.Values("Authorization")
 			// Allow unauthenticated users in
 			if len(auths) == 0 {
@@ -66,7 +68,11 @@ func Middleware() func(http.Handler) http.Handler {
 			token, err := extractBearerToken(auths)
 			if err != nil {
 				// No Bearer token or too many bearer token
-				log.Println(err.Error())
+				log.Printf("auth.middleware: %s\n", err.Error())
+				// Let resolvers return the error
+				ctx := context.WithValue(r.Context(), errCtxKey, err)
+				r = r.WithContext(ctx)
+
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -75,7 +81,12 @@ func Middleware() func(http.Handler) http.Handler {
 			if err != nil {
 				// Token is bad, don't put it in the context
 				// The resolvers requiring token authentication will fail
-				log.Println(err.Error())
+
+				log.Printf("auth.middleware: %s\n", err.Error())
+				// Let resolvers return the error
+				ctx := context.WithValue(r.Context(), errCtxKey, err)
+				r = r.WithContext(ctx)
+
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -90,7 +101,18 @@ func Middleware() func(http.Handler) http.Handler {
 }
 
 // ForContext finds the tokenId from the context. REQUIRES Middleware to have run.
-func ForContext(ctx context.Context) *utils.TokenId {
+func forContext(ctx context.Context) *utils.TokenId {
 	raw, _ := ctx.Value(userCtxKey).(*utils.TokenId)
 	return raw
+}
+func forContextError(ctx context.Context) error {
+	raw, _ := ctx.Value(errCtxKey).(error)
+	return raw
+}
+func GetTokenIdFromCtx(ctx context.Context) (*utils.TokenId, error) {
+	err := forContextError(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return forContext(ctx), nil
 }

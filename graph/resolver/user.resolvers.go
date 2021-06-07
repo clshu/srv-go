@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/clshu/srv-go/api/auth"
@@ -111,9 +112,14 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.UserView, error) {
 }
 
 func (r *queryResolver) Profile(ctx context.Context) (*model.UserView, error) {
-	tokenId := auth.ForContext(ctx)
+	tokenId, err := auth.GetTokenIdFromCtx(ctx)
+	if err != nil {
+		// Header or token parsing errors
+		return nil, err
+	}
 	// log.Println(tokenId)
 	if tokenId == nil {
+		// No Authorization token
 		return nil, fmt.Errorf(("Unauthorized"))
 	}
 	user := &model.User{}
@@ -128,10 +134,10 @@ func (r *queryResolver) Profile(ctx context.Context) (*model.UserView, error) {
 		return nil, result.Err()
 	}
 
-	err := result.Decode(user)
+	err = result.Decode(user)
 	if err != nil {
-		// log.Print(err)
-		return nil, fmt.Errorf("Unauthorized")
+		log.Print(err)
+		return nil, err
 	}
 	return User2UserView(user), nil
 }
