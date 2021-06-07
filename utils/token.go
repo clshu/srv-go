@@ -2,9 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/form3tech-oss/jwt-go"
@@ -62,13 +60,13 @@ func CreateToken(id string) (string, error) {
 	return ss, err
 }
 
-func ParseToken(tokenString string, claims *GoClaims) (int, error) {
+func ParseToken(tokenString string) (*TokenId, error) {
 	// mClaims := GoClaims{}
 	secret := os.Getenv("APP_SECRET")
 	// secret = "5678"
 	if secret == "" {
 		err := fmt.Errorf("Do Not Find Secret for Signing Token")
-		return http.StatusUnauthorized, err
+		return nil, err
 	}
 	// Parse the token
 	token, err := jwt.ParseWithClaims(tokenString, &GoClaims{}, func(token *jwt.Token) (interface{}, error) {
@@ -77,49 +75,45 @@ func ParseToken(tokenString string, claims *GoClaims) (int, error) {
 	})
 
 	if err != nil {
-		if err == jwt.ErrSignatureInvalid {
-			return http.StatusUnauthorized, err
-		}
-		return http.StatusBadRequest, err
+		return nil, err
 	}
 
 	if !token.Valid {
-		return http.StatusUnauthorized, fmt.Errorf("Token is invalid")
+		return nil, fmt.Errorf("Token is invalid")
 	}
 
 	// Check against alg=none hack
 	if token.Method.Alg() != algorithm {
-		return http.StatusUnauthorized, fmt.Errorf("Algorithm is incorrect")
+		return nil, fmt.Errorf("Algorithm is incorrect")
 	}
-	mClaims, ok := token.Claims.(*GoClaims)
+	claims, ok := token.Claims.(*GoClaims)
 	if !ok {
-		return http.StatusUnauthorized, fmt.Errorf("Token is corrupted")
-	}
-
-	(*claims) = *mClaims
-
-	return http.StatusOK, nil
-}
-
-func GetTokenId(req *http.Request) (*TokenId, int, error) {
-	str := req.Header.Get("Authorization")
-	if str == "" {
-		return nil, http.StatusUnauthorized, fmt.Errorf("No Token in Header")
-	}
-
-	bearer := strings.Split(str, " ")
-
-	if strings.ToLower(bearer[0]) != "bearer" {
-		return nil, http.StatusUnauthorized, fmt.Errorf("No Bearer token")
-	}
-	claims := GoClaims{}
-
-	status, err := ParseToken(bearer[1], &claims)
-
-	if err != nil {
-		return nil, status, err
+		return nil, fmt.Errorf("Token is corrupted")
 	}
 	tokenID := TokenId{ID: claims.SClaims.Subject, Az: claims.Az}
-	return &tokenID, http.StatusOK, nil
 
+	return &tokenID, nil
 }
+
+// func GetTokenId(req *http.Request) (*TokenId, int, error) {
+// 	str := req.Header.Get("Authorization")
+// 	if str == "" {
+// 		return nil, http.StatusUnauthorized, fmt.Errorf("No Token in Header")
+// 	}
+
+// 	bearer := strings.Split(str, " ")
+
+// 	if strings.ToLower(bearer[0]) != "bearer" {
+// 		return nil, http.StatusUnauthorized, fmt.Errorf("No Bearer token")
+// 	}
+// 	claims := GoClaims{}
+
+// 	status, err := ParseToken(bearer[1], &claims)
+
+// 	if err != nil {
+// 		return nil, status, err
+// 	}
+// 	tokenID := TokenId{ID: claims.SClaims.Subject, Az: claims.Az}
+// 	return &tokenID, http.StatusOK, nil
+
+// }

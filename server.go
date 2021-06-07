@@ -8,13 +8,16 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/clshu/srv-go/api/auth"
 	"github.com/clshu/srv-go/dbmgm"
 	"github.com/clshu/srv-go/graph/generated"
 	"github.com/clshu/srv-go/graph/resolver"
+	"github.com/go-chi/chi"
 	"github.com/joho/godotenv"
 )
 
 const defaultPort = "8080"
+const defaultEndpoint = "tvu_graphql"
 
 func main() {
 	setUpEnv()
@@ -29,13 +32,23 @@ func main() {
 		port = defaultPort
 	}
 
+	endpoint := os.Getenv("GRAPHQL_ENDPOINT")
+	if endpoint == "" {
+		endpoint = defaultEndpoint
+	}
+	gqlPath := fmt.Sprintf("/%s", endpoint)
+	// log.Println(gqlPath)
+	r := chi.NewRouter()
+	// r.Use(middleware.Logger)
+	r.Use(auth.Middleware())
+
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{}}))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	r.Handle("/tvu_playground", playground.Handler("GraphQL playground", gqlPath))
+	r.Handle(gqlPath, srv)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Printf("connect to http://localhost:%s/tvu_playground for GraphQL playground", port)
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }
 
 func setUpEnv() {

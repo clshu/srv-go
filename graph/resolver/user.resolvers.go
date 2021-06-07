@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/clshu/srv-go/api/auth"
 	"github.com/clshu/srv-go/graph/model"
 	"github.com/clshu/srv-go/utils"
 	"github.com/kamva/mgm/v3"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -109,5 +111,27 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.UserView, error) {
 }
 
 func (r *queryResolver) Profile(ctx context.Context) (*model.UserView, error) {
-	panic(fmt.Errorf("not implemented"))
+	tokenId := auth.ForContext(ctx)
+	// log.Println(tokenId)
+	if tokenId == nil {
+		return nil, fmt.Errorf(("Unauthorized"))
+	}
+	user := &model.User{}
+	id, _ := primitive.ObjectIDFromHex(tokenId.ID)
+	mctx := mgm.Ctx()
+	result := mgm.Coll(user).FindOne(mctx, bson.M{"_id": id})
+	if result.Err() != nil {
+		if strings.Contains(result.Err().Error(), "no documents in result") {
+			// log.Printf("%s - %s", result.Err(), email)
+			return nil, fmt.Errorf("Profile Not Found")
+		}
+		return nil, result.Err()
+	}
+
+	err := result.Decode(user)
+	if err != nil {
+		// log.Print(err)
+		return nil, fmt.Errorf("Unauthorized")
+	}
+	return User2UserView(user), nil
 }
