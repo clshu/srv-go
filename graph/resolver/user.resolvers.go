@@ -9,10 +9,11 @@ import (
 	"log"
 	"strings"
 
-	"github.com/clshu/srv-go/api/auth"
+	"github.com/clshu/srv-go/graph/generated"
 	"github.com/clshu/srv-go/graph/model"
+	"github.com/clshu/srv-go/middleware/auth"
 	"github.com/clshu/srv-go/utils"
-	"github.com/kamva/mgm/v3"
+	mgm "github.com/kamva/mgm/v3"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -141,3 +142,12 @@ func (r *queryResolver) Profile(ctx context.Context) (*model.UserView, error) {
 	}
 	return User2UserView(user), nil
 }
+
+func (r *userResolver) ID(ctx context.Context, obj *model.User) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+// User returns generated.UserResolver implementation.
+func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
+
+type userResolver struct{ *Resolver }

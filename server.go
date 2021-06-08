@@ -8,10 +8,11 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/clshu/srv-go/api/auth"
 	"github.com/clshu/srv-go/dbmgm"
 	"github.com/clshu/srv-go/graph/generated"
 	"github.com/clshu/srv-go/graph/resolver"
+	"github.com/clshu/srv-go/middleware/api"
+	"github.com/clshu/srv-go/middleware/auth"
 	"github.com/go-chi/chi"
 	"github.com/joho/godotenv"
 )
@@ -41,6 +42,7 @@ func main() {
 	r := chi.NewRouter()
 	// r.Use(middleware.Logger)
 	r.Use(auth.Middleware())
+	r.Use(api.Middleware())
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &resolver.Resolver{}}))
 
